@@ -1,0 +1,3 @@
+# 코어 엔진(M1~M6)은 Python 표준 라이브러리만으로 동작합니다 — 외부 의존성 없음.
+# 아래 패키지는 DART Open API 실데이터 수집 스크립트(run_real_data.py, M5)에서만 사용됩니다.
+requests>=2.31.0

@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 660" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#94A3B8"/>
+    </marker>
+    <style>
+      .code  { font-weight: 700; }
+      .name  { font-weight: 700; }
+      .desc  { fill: #64748B; }
+      .lbl   { fill: #64748B; font-weight: 700; letter-spacing: .08em; }
+      .stage { fill: #0F172A; }
+    </style>
+  </defs>
+
+  <!-- panel -->
+  <rect x="1" y="1" width="1038" height="658" rx="16" fill="url(#bg)" stroke="#E2E8F0" stroke-width="2"/>
+
+  <!-- ===== INPUT ===== -->
+  <rect x="370" y="34" width="300" height="56" rx="10" fill="#0F172A"/>
+  <text x="520" y="60" text-anchor="middle" fill="#FFFFFF" font-size="16" class="name">재무제표 입력</text>
+  <text x="520" y="79" text-anchor="middle" fill="#CBD5E1" font-size="12">Excel 업로드 · DART Open API</text>
+
+  <line x1="520" y1="90" x2="520" y2="120" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ===== PRE-DISCLOSURE STAGE ===== -->
+  <text x="40" y="138" font-size="12" class="lbl">공시 전 · PRE-DISCLOSURE</text>
+  <line x1="245" y1="133" x2="1000" y2="133" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- M1 -->
+  <g>
+    <rect x="40" y="150" width="210" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="40" y="150" width="210" height="7" rx="3.5" fill="#3776AB"/>
+    <text x="60" y="185" fill="#3776AB" font-size="15" class="code">M1</text>
+    <text x="60" y="207" fill="#0F172A" font-size="14" class="name">Taxonomy Mapper</text>
+    <text x="60" y="227" font-size="11.5" class="desc">계정과목 → 표준</text>
+    <text x="60" y="242" font-size="11.5" class="desc">Taxonomy 자동 매핑</text>
+  </g>
+  <!-- M2 -->
+  <g>
+    <rect x="290" y="150" width="210" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="290" y="150" width="210" height="7" rx="3.5" fill="#3776AB"/>
+    <text x="310" y="185" fill="#3776AB" font-size="15" class="code">M2</text>
+    <text x="310" y="207" fill="#0F172A" font-size="14" class="name">Auto Tagger</text>
+    <text x="310" y="227" font-size="11.5" class="desc">재무제표 → iXBRL</text>
+    <text x="310" y="242" font-size="11.5" class="desc">태그 자동 부착</text>
+  </g>
+  <!-- M3 -->
+  <g>
+    <rect x="540" y="150" width="210" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="540" y="150" width="210" height="7" rx="3.5" fill="#3776AB"/>
+    <text x="560" y="185" fill="#3776AB" font-size="15" class="code">M3</text>
+    <text x="560" y="207" fill="#0F172A" font-size="14" class="name">Validator</text>
+    <text x="560" y="227" font-size="11.5" class="desc">합산 검증 · 형식 오류</text>
+    <text x="560" y="242" font-size="11.5" class="desc">· 이상치 탐지</text>
+  </g>
+  <!-- M4 -->
+  <g>
+    <rect x="790" y="150" width="210" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="790" y="150" width="210" height="7" rx="3.5" fill="#3776AB"/>
+    <text x="810" y="185" fill="#3776AB" font-size="15" class="code">M4</text>
+    <text x="810" y="207" fill="#0F172A" font-size="14" class="name">Change Tracker</text>
+    <text x="810" y="227" font-size="11.5" class="desc">전기 대비 공시</text>
+    <text x="810" y="242" font-size="11.5" class="desc">변경사항 자동 추적</text>
+  </g>
+
+  <!-- horizontal arrows between M1..M4 -->
+  <line x1="250" y1="202" x2="290" y2="202" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="500" y1="202" x2="540" y2="202" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="750" y1="202" x2="790" y2="202" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- down arrow to post stage -->
+  <line x1="520" y1="254" x2="520" y2="300" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="534" y="282" font-size="11" class="desc">공시 완료</text>
+
+  <!-- ===== POST-DISCLOSURE STAGE ===== -->
+  <text x="40" y="320" font-size="12" class="lbl">공시 후 · POST-DISCLOSURE</text>
+  <line x1="245" y1="315" x2="1000" y2="315" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- M5 -->
+  <g>
+    <rect x="220" y="334" width="260" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="220" y="334" width="260" height="7" rx="3.5" fill="#00B4D8"/>
+    <text x="242" y="369" fill="#0891B2" font-size="15" class="code">M5</text>
+    <text x="242" y="391" fill="#0F172A" font-size="14" class="name">Analytics</text>
+    <text x="242" y="411" font-size="11.5" class="desc">DART 데이터 기반</text>
+    <text x="242" y="426" font-size="11.5" class="desc">기업 간 · 시계열 재무 분석</text>
+  </g>
+  <!-- M6 -->
+  <g>
+    <rect x="560" y="334" width="260" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+    <rect x="560" y="334" width="260" height="7" rx="3.5" fill="#00B4D8"/>
+    <text x="582" y="369" fill="#0891B2" font-size="15" class="code">M6</text>
+    <text x="582" y="391" fill="#0F172A" font-size="14" class="name">Extension Manager</text>
+    <text x="582" y="411" font-size="11.5" class="desc">확장항목 수집 · 그룹핑</text>
+    <text x="582" y="426" font-size="11.5" class="desc">표준화 후보 제안</text>
+  </g>
+
+  <!-- ===== DART data source cylinder ===== -->
+  <g>
+    <ellipse cx="935" cy="352" rx="55" ry="13" fill="#E0F7FC" stroke="#00B4D8" stroke-width="1.5"/>
+    <path d="M880 352 V 420 A55 13 0 0 0 990 420 V 352" fill="#E0F7FC" stroke="#00B4D8" stroke-width="1.5"/>
+    <ellipse cx="935" cy="352" rx="55" ry="13" fill="#F0FBFE" stroke="#00B4D8" stroke-width="1.5"/>
+    <text x="935" y="390" text-anchor="middle" fill="#0891B2" font-size="13" class="name">DART</text>
+    <text x="935" y="407" text-anchor="middle" fill="#0891B2" font-size="11">Open API</text>
+  </g>
+  <line x1="880" y1="386" x2="820" y2="386" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+
+  <!-- ===== ORCHESTRATION ===== -->
+  <rect x="40" y="478" width="960" height="64" rx="10" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="60" y="505" fill="#0F172A" font-size="13" class="name">XBRLPipeline</text>
+  <text x="60" y="525" font-size="11.5" class="desc">xbrl_platform/pipeline.py — M1~M6 통합 실행 오케스트레이션</text>
+  <line x1="520" y1="438" x2="520" y2="478" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ===== OUTPUT ===== -->
+  <line x1="520" y1="542" x2="520" y2="572" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="300" y="572" width="440" height="56" rx="10" fill="#0F172A"/>
+  <text x="520" y="598" text-anchor="middle" fill="#FFFFFF" font-size="15" class="name">iXBRL 공시 파일 · 검증 리포트 · 재무 분석</text>
+  <text x="520" y="617" text-anchor="middle" fill="#CBD5E1" font-size="12">웹 대시보드 (Next.js) · 다운로드</text>
+</svg>
