@@ -42,6 +42,19 @@ from m4_change_tracker import ChangeTracker     # noqa: E402
 
 TAXONOMY_PATH = os.path.join(_ENGINE_DIR, "data", "kor_ifrs_taxonomy.json")
 
+import math  # noqa: E402
+
+
+def _clean_json(obj):
+    """JSON에 허용되지 않는 inf/-inf/NaN 값을 None 으로 재귀 변환."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _clean_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_clean_json(v) for v in obj]
+    return obj
+
 
 def _to_fs(items):
     """프론트엔드 accounts → 엔진 입력 형태로 변환"""
@@ -147,7 +160,8 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def _send(self, code, obj):
-        data = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        # inf/-inf/NaN 은 유효한 JSON이 아니므로 None 으로 정리 (예: 전기 0 → 변동률 무한대)
+        data = json.dumps(_clean_json(obj), ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
