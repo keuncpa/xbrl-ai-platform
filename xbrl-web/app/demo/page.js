@@ -111,6 +111,73 @@ async function parseXlsx(file) {
 }
 
 // ============================================================
+// PDF 파서 (pdf.js — 디지털/텍스트 PDF만, 스캔본은 미지원)
+// ============================================================
+function loadPdfLib() {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && window.pdfjsLib) { resolve(window.pdfjsLib); return }
+    const script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    script.onload = () => {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js' } catch (e) {}
+      resolve(window.pdfjsLib)
+    }
+    script.onerror = () => reject(new Error('pdf.js CDN 로드 실패'))
+    document.head.appendChild(script)
+  })
+}
+
+// 한 줄에서 "계정과목 + 금액" 추출 (당기=첫 번째 숫자 컬럼)
+function parseStatementLines(lines) {
+  const accounts = []
+  const seen = new Set()
+  const numRe = /\(?\s*[△▲]?-?\s*\d[\d,]*(?:\.\d+)?\s*\)?/g
+  for (const raw of lines) {
+    const line = raw.replace(/\s+/g, ' ').trim()
+    if (!line) continue
+    const matches = [...line.matchAll(numRe)]
+    if (matches.length === 0) continue
+    const first = matches[0]
+    let name = line.slice(0, first.index).replace(/[.·\s]+$/, '').trim()
+    // 주석번호 등 선행 기호 제거
+    name = name.replace(/^[ⅠⅡⅢⅣⅤ\d.()\s]+(?=[가-힣])/, '').trim()
+    if (!name || !/[가-힣]/.test(name)) continue
+    let tok = first[0].trim()
+    const neg = /[△▲]/.test(tok) || tok.startsWith('-') || (tok.startsWith('(') && tok.includes(')'))
+    tok = tok.replace(/[(),△▲\s-]/g, '')
+    const val = parseInt(tok, 10)
+    if (Number.isNaN(val)) continue
+    if (seen.has(name)) continue
+    seen.add(name)
+    accounts.push({ name, amount: neg ? -val : val, level: levelOf(name) })
+  }
+  return accounts
+}
+
+async function parsePdf(file) {
+  const pdfjsLib = await loadPdfLib()
+  const buf = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise
+  const lines = []
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p)
+    const tc = await page.getTextContent()
+    const rows = {}
+    for (const it of tc.items) {
+      if (!it.str || !it.str.trim()) continue
+      const y = Math.round(it.transform[5])
+      ;(rows[y] = rows[y] || []).push({ x: it.transform[4], s: it.str })
+    }
+    const ys = Object.keys(rows).map(Number).sort((a, b) => b - a)
+    for (const y of ys) {
+      const parts = rows[y].sort((a, b) => a.x - b.x).map(o => o.s)
+      lines.push(parts.join(' '))
+    }
+  }
+  return parseStatementLines(lines)
+}
+
+// ============================================================
 // COMPONENT
 // ============================================================
 export default function DemoPage() {
@@ -218,8 +285,17 @@ export default function DemoPage() {
       let accounts = []
       if (ext === 'csv' || ext === 'txt') accounts = parseCsvText(await file.text())
       else if (ext === 'xlsx' || ext === 'xls') accounts = await parseXlsx(file)
-      else { setError('지원하지 않는 파일 형식입니다. (.xlsx, .csv 지원)'); setLoading(false); return }
-      if (accounts.length === 0) { setError('파싱된 계정과목이 없습니다. 파일 형식을 확인하세요.'); setLoading(false); return }
+      else if (ext === 'pdf') accounts = await parsePdf(file)
+      else {
+        setError('지원하지 않는 형식입니다. 엑셀(.xlsx/.xls), CSV(.csv), 텍스트 PDF(.pdf)를 올려주세요. (스캔본/이미지 PDF는 OCR이 필요해 미지원)')
+        setLoading(false); return
+      }
+      if (accounts.length === 0) {
+        setError(ext === 'pdf'
+          ? '이 PDF에서 계정과목을 추출하지 못했습니다. 텍스트가 없는 스캔본일 수 있습니다(OCR 필요). 엑셀/CSV로 시도해 보세요.'
+          : '파싱된 계정과목이 없습니다. 파일 형식을 확인하세요.')
+        setLoading(false); return
+      }
       await callEngine(accounts, [], { entity: file.name.replace(/\.[^.]+$/, ''), year })
     } catch (e) {
       setError('파일 처리 실패: ' + e.message); setLoading(false)
@@ -278,13 +354,13 @@ export default function DemoPage() {
       <div className="demo-container">
         <div className="demo-header">
           <h1>XBRL 생성·검증 데모</h1>
-          <p>기업을 검색해 DART 재무데이터를 불러오거나 엑셀/CSV를 업로드하면, 코어 엔진(M1~M4)이 <b>Taxonomy 매핑 → iXBRL 생성 → 품질검증 → 전기 대비 변경추적</b>까지 한 번에 처리합니다.</p>
+          <p>기업을 검색해 DART 재무데이터를 불러오거나 재무제표 파일(엑셀·CSV·PDF)을 업로드하면, 코어 엔진(M1~M4)이 <b>Taxonomy 매핑 → iXBRL 생성 → 품질검증 → 전기 대비 변경추적</b>까지 한 번에 처리합니다.</p>
         </div>
 
         {/* Tabs */}
         <div className="tab-bar">
           <button className={`tab-btn ${activeTab === 'dart' ? 'active' : ''}`} onClick={() => setActiveTab('dart')}>DART API 조회</button>
-          <button className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>엑셀 업로드</button>
+          <button className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>재무제표 업로드</button>
         </div>
 
         <div className="tab-content">
@@ -339,11 +415,11 @@ export default function DemoPage() {
                 onDrop={handleDrop}
                 onClick={() => fileRef.current?.click()}
               >
-                <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.txt" style={{ display: 'none' }}
+                <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.txt,.pdf" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }} />
                 <div className="upload-icon">+</div>
-                <p className="upload-text">파일을 드래그하거나 클릭하여 업로드</p>
-                <p className="upload-hint">.xlsx, .csv 파일 지원</p>
+                <p className="upload-text">재무제표 파일을 드래그하거나 클릭하여 업로드</p>
+                <p className="upload-hint">엑셀(.xlsx/.xls) · CSV · 디지털 PDF 지원 &nbsp;|&nbsp; 스캔본·이미지 PDF는 OCR 필요로 미지원</p>
               </div>
 
               <div className="csv-fallback">
