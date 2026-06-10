@@ -547,13 +547,13 @@ export default function DemoPage() {
               <h3>M1 Taxonomy 매핑 결과</h3>
               <div className="map-note">
                 <p className="map-note-title">신뢰도란?</p>
-                <p>계정과목명과 표준 Taxonomy 레이블이 <b>텍스트로 얼마나 비슷한지</b>를 0~100%로 매긴 점수입니다(현재 글자 유사도 기반).</p>
+                <p>계정과목명이 표준 Taxonomy 요소와 <b>얼마나 잘 맞는지</b>를 0~100%로 매긴 점수입니다. <b>별칭(동의어) 사전 + 텍스트 유사도</b>로 계산하며, 임베딩 키가 설정되면 <b>의미 기반 매칭</b>으로 자동 전환됩니다(정확·별칭 일치 시 100%).</p>
                 <ul className="conf-legend">
                   <li><span className="dot green" /> <b>80%↑</b> 신뢰 가능 (정확히 일치하면 100%)</li>
                   <li><span className="dot amber" /> <b>50~80%</b> 부분 일치 — 사람이 확인 권장</li>
                   <li><span className="dot red" /> <b>50% 미만</b> 표준에 마땅한 항목 없음 → 확장항목(<span className="ext-badge">EXT</span>) 후보</li>
                 </ul>
-                <p className="map-note-foot">낮은 항목은 표준 레이블과 표현이 다르거나(예: <i>매각예정자산</i> ↔ 표준 <i>매각예정비유동자산</i>) 내장 표준 사전(93개)에 가까운 요소가 없어서입니다. 글자만 비교하므로 <b>신뢰도가 높아도 의미상 오매핑일 수 있어</b> 검토가 필요합니다. (향후 의미 기반 임베딩 매핑으로 고도화 예정)</p>
+                <p className="map-note-foot">낮은 항목은 표준과 표현이 다르거나 내장 표준 사전에 가까운 요소가 없어서입니다. <b>신뢰도가 높아도 의미상 오매핑일 수 있어</b> 검토가 필요합니다. (별칭 사전·Taxonomy 확충·임베딩 매칭이 적용되어 동의어 인식 정확도가 향상되었습니다.)</p>
               </div>
               <div className="table-wrapper">
                 <table className="mapping-table">

@@ -14,7 +14,9 @@ M1. Taxonomy Mapper - 계정과목 → XBRL 표준 Taxonomy 자동 매핑 엔진
 """
 
 import re
+import os
 import json
+import math
 from pathlib import Path
 from difflib import SequenceMatcher
 from collections import defaultdict
@@ -22,34 +24,54 @@ from utils import setup_logger, load_json, save_json, DATA_DIR, OUTPUT_DIR, norm
 
 logger = setup_logger('M1.TaxonomyMapper')
 
+# 임베딩(의미 기반) 매칭은 API 키가 설정된 경우에만 활성화 (없으면 별칭+텍스트 유사도로 동작)
+_EMBED_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+_EMBED_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("EMBEDDING_API_KEY")
+_EMBED_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "https://api.openai.com/v1/embeddings")
+_TAX_EMB_CACHE = {}  # 워밍된 컨테이너 재사용용 (label -> vector)
+
 
 class TaxonomyMapper:
     """계정과목 → XBRL Taxonomy 자동 매핑 엔진"""
 
-    def __init__(self, taxonomy_path: str | Path = None):
+    def __init__(self, taxonomy_path: str | Path = None, use_embeddings: bool = None):
         self.taxonomy_path = taxonomy_path or DATA_DIR / "kor_ifrs_taxonomy.json"
         self.elements = []
-        self.label_index = {}       # label_ko → element
+        self.label_index = {}       # label_ko/별칭(정규화) → element
         self.keyword_index = defaultdict(list)  # 키워드 → [elements]
         self.mapping_history = {}   # 과거 매핑 이력 (학습용)
+        # 임베딩(의미 기반) 매칭: 키가 있으면 자동 활성화, 없으면 별칭+텍스트 유사도로 폴백
+        self.use_embeddings = bool(_EMBED_KEY) if use_embeddings is None else use_embeddings
         self._load_taxonomy()
+        if self.use_embeddings:
+            logger.info(f"임베딩 매칭 활성화 (model={_EMBED_MODEL})")
+
+    def _match_labels(self, elem: dict) -> list[str]:
+        """요소의 매칭 후보 레이블 = 표준 레이블 + 별칭"""
+        labels = [elem['label_ko']] + list(elem.get('aliases', []))
+        # 정규화 + 중복 제거 (순서 유지)
+        seen, out = set(), []
+        for lbl in labels:
+            n = normalize_text(lbl)
+            if n and n not in seen:
+                seen.add(n)
+                out.append(n)
+        return out
 
     def _load_taxonomy(self):
-        """Taxonomy 로드 및 인덱스 구축"""
+        """Taxonomy 로드 및 인덱스 구축 (별칭 포함)"""
         data = load_json(self.taxonomy_path)
         self.elements = data.get('elements', [])
         self.calc_rules = data.get('calculation_rules', [])
 
         for elem in self.elements:
-            label = normalize_text(elem['label_ko'])
-            self.label_index[label] = elem
+            for label in self._match_labels(elem):   # 표준 레이블 + 별칭 모두 색인
+                self.label_index.setdefault(label, elem)
+                for token in self._tokenize(label):
+                    self.keyword_index[token].append(elem)
 
-            # 키워드 인덱스: 한글 레이블의 각 토큰으로 역인덱스
-            tokens = self._tokenize(label)
-            for token in tokens:
-                self.keyword_index[token].append(elem)
-
-        logger.info(f"Taxonomy 로드 완료: {len(self.elements)}개 요소, {len(self.keyword_index)}개 키워드")
+        n_alias = sum(len(e.get('aliases', [])) for e in self.elements)
+        logger.info(f"Taxonomy 로드 완료: {len(self.elements)}개 요소(별칭 {n_alias}개), {len(self.keyword_index)}개 키워드")
 
     def _tokenize(self, text: str) -> list[str]:
         """한글 계정과목명 토큰화"""
@@ -150,15 +172,29 @@ class TaxonomyMapper:
                 "method": "exact"
             }
 
-        # 3. 유사도 기반 검색
-        scores = []
+        # 3. 유사도 기반 검색 (별칭 포함: 각 요소의 표준 레이블 + 별칭 중 최고 점수)
+        scores = {}
         for elem in self.elements:
-            sim = self._text_similarity(account_name, elem['label_ko'])
+            sim = max(self._text_similarity(account_name, lbl) for lbl in self._match_labels(elem))
             if sim > 0.2:
-                scores.append((sim, elem))
+                scores[elem['id']] = (sim, elem)
 
-        scores.sort(key=lambda x: x[0], reverse=True)
-        candidates = scores[:top_k]
+        # 3-1. 임베딩(의미) 매칭 보강 — 키가 설정된 경우에만. 텍스트 점수와 max로 결합.
+        method = "similarity"
+        if self.use_embeddings:
+            emb = self._embedding_scores(account_name)  # {elem_id: 0~1}
+            if emb:
+                method = "hybrid"
+                for elem in self.elements:
+                    ec = emb.get(elem['id'], 0.0)
+                    if elem['id'] in scores:
+                        prev, _ = scores[elem['id']]
+                        scores[elem['id']] = (max(prev, ec), elem)
+                    elif ec > 0.2:
+                        scores[elem['id']] = (ec, elem)
+
+        ranked = sorted(scores.values(), key=lambda x: x[0], reverse=True)
+        candidates = ranked[:top_k]
 
         if not candidates:
             logger.warning(f"매핑 실패: {account_name} → 확장항목 필요")
@@ -178,7 +214,7 @@ class TaxonomyMapper:
         if needs_ext:
             logger.info(f"저신뢰 매핑: {account_name} → {best_elem['id']} (신뢰도: {best_score:.2f}, 확장항목 검토 필요)")
         else:
-            logger.info(f"유사도 매핑: {account_name} → {best_elem['id']} (신뢰도: {best_score:.2f})")
+            logger.info(f"{method} 매핑: {account_name} → {best_elem['id']} (신뢰도: {best_score:.2f})")
 
         return {
             "input": account_name,
@@ -186,8 +222,69 @@ class TaxonomyMapper:
             "confidence": round(best_score, 4),
             "candidates": [{"score": round(s, 4), **e} for s, e in candidates],
             "needs_extension": needs_ext,
-            "method": "similarity"
+            "method": method
         }
+
+    # ── 임베딩(의미 기반) 매칭 헬퍼 ──────────────────────────────
+    def _embedding_scores(self, text: str) -> dict:
+        """입력명 vs 모든 요소 레이블의 코사인 유사도 → {elem_id: 0~1}. 실패 시 폴백."""
+        try:
+            tax = self._ensure_tax_embeddings()
+            vec = self._embed([text])[0]
+            return {eid: self._cos_to_conf(self._cosine(vec, ev)) for eid, ev in tax.items()}
+        except Exception as ex:  # noqa: BLE001
+            logger.warning(f"임베딩 매칭 실패 → 텍스트 유사도로 폴백: {ex}")
+            self.use_embeddings = False
+            return {}
+
+    def _ensure_tax_embeddings(self) -> dict:
+        """요소 레이블 임베딩을 1회 계산 후 캐시(컨테이너 메모리 + /tmp)."""
+        cache_key = f"{_EMBED_MODEL}:{len(self.elements)}"
+        if cache_key in _TAX_EMB_CACHE:
+            return _TAX_EMB_CACHE[cache_key]
+        import tempfile
+        import hashlib
+        cache_file = os.path.join(
+            tempfile.gettempdir(),
+            "taxemb_" + hashlib.md5(cache_key.encode()).hexdigest() + ".json"
+        )
+        if os.path.exists(cache_file):
+            data = load_json(cache_file)
+            _TAX_EMB_CACHE[cache_key] = data
+            return data
+        vecs = self._embed([e['label_ko'] for e in self.elements])
+        data = {e['id']: vecs[i] for i, e in enumerate(self.elements)}
+        try:
+            with open(cache_file, "w") as f:
+                json.dump(data, f)
+        except Exception:  # noqa: BLE001
+            pass
+        _TAX_EMB_CACHE[cache_key] = data
+        return data
+
+    def _embed(self, texts: list[str]) -> list[list[float]]:
+        """임베딩 API 호출 (표준 라이브러리 urllib 사용 — 외부 패키지 불필요)."""
+        import urllib.request
+        body = json.dumps({"model": _EMBED_MODEL, "input": texts}).encode("utf-8")
+        req = urllib.request.Request(
+            _EMBED_ENDPOINT, data=body,
+            headers={"Authorization": f"Bearer {_EMBED_KEY}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            resp = json.loads(r.read().decode("utf-8"))
+        return [d["embedding"] for d in resp["data"]]
+
+    @staticmethod
+    def _cosine(a: list[float], b: list[float]) -> float:
+        dot = sum(x * y for x, y in zip(a, b))
+        na = math.sqrt(sum(x * x for x in a))
+        nb = math.sqrt(sum(y * y for y in b))
+        return dot / (na * nb) if na and nb else 0.0
+
+    @staticmethod
+    def _cos_to_conf(cos: float) -> float:
+        """문장 임베딩 코사인을 0~1 신뢰도로 스케일 (동의어 ~0.6+, 무관 ~0.2-)."""
+        return max(0.0, min(1.0, (cos - 0.2) / 0.7))
 
     def map_accounts(self, account_names: list[str], top_k: int = 3) -> list[dict]:
         """복수 계정과목 일괄 매핑"""
