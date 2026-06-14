@@ -7,6 +7,16 @@
 </p>
 
 <p align="center">
+  <a href="https://xbrl-web.vercel.app">
+    <img src="https://img.shields.io/badge/%E2%96%B6%20%EB%9D%BC%EC%9D%B4%EB%B8%8C%20%EB%8D%B0%EB%AA%A8%20%EB%B0%94%EB%A1%9C%EA%B0%80%EA%B8%B0-xbrl--web.vercel.app-00B4D8?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo 바로가기" height="42" />
+  </a>
+</p>
+
+<p align="center">
+  <sub>👆 클릭하면 새 탭에서 바로 열립니다 · <a href="https://xbrl-web.vercel.app">https://xbrl-web.vercel.app</a></sub>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" />
