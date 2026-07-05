@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests (M1~M4)
+        run: pytest tests/ -v
+
+      - name: Check vendored engine is in sync
+        run: |
+          set -e
+          for f in m1_taxonomy_mapper.py m2_auto_tagger.py m3_validator.py m4_change_tracker.py utils.py; do
+            diff -q "xbrl_platform/$f" "xbrl-web/api/_engine/$f"
+          done
+          diff -q xbrl_platform/data/kor_ifrs_taxonomy.json xbrl-web/api/_engine/data/kor_ifrs_taxonomy.json
+          echo "vendored engine copies are in sync"

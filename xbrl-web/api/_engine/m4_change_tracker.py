@@ -62,7 +62,9 @@ class ChangeTracker:
                 base_amount = abs(item.get('amount', 0))
                 break
         if not base_amount:
-            base_amount = max(abs(item.get('amount', 0)) for item in current_items if item.get('amount'))
+            amounts = [abs(item.get('amount', 0)) for item in current_items
+                       if isinstance(item.get('amount'), (int, float)) and item.get('amount')]
+            base_amount = max(amounts) if amounts else 1  # 금액이 전무한 입력에서도 ValueError 방지
 
         logger.info(f"변경 추적 시작: 전기 {len(prior_items)}개 / 당기 {len(current_items)}개")
         logger.info(f"중요성 기준: 자산총계 {base_amount:,.0f} x {self.materiality:.0%} = {base_amount * self.materiality:,.0f}")

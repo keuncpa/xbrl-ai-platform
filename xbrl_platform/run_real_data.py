@@ -6,9 +6,6 @@ XBRL 공시 AI 자동화 플랫폼 - DART 실제 데이터 테스트
 import os
 import requests
 import json
-import zipfile
-import io
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
 from utils import setup_logger, save_json, OUTPUT_DIR, ensure_dirs, parse_number
@@ -35,6 +32,8 @@ TARGET_COMPANIES = {
 
 def fetch_financial_statements(corp_code: str, year: str, fs_div: str = 'CFS') -> list[dict]:
     """DART API로 재무제표 조회"""
+    if not API_KEY:
+        raise SystemExit("DART_API_KEY 환경변수를 설정한 후 실행하세요. (https://opendart.fss.or.kr)")
     url = f'{DART_BASE}/fnlttSinglAcntAll.json'
     params = {
         'crtfc_key': API_KEY,
@@ -44,7 +43,7 @@ def fetch_financial_statements(corp_code: str, year: str, fs_div: str = 'CFS') -
         'fs_div': fs_div,       # CFS=연결, OFS=별도
     }
 
-    r = requests.get(url, params=params)
+    r = requests.get(url, params=params, timeout=30)
     data = r.json()
 
     if data.get('status') != '000':

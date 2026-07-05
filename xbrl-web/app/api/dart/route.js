@@ -10,8 +10,17 @@ export async function GET(request) {
   const reprt_code = searchParams.get('reprt_code') || '11011'
   const fs_div = searchParams.get('fs_div') || 'CFS'
 
-  if (!corp_code) {
-    return NextResponse.json({ error: 'corp_code is required' }, { status: 400 })
+  if (!DART_API_KEY) {
+    return NextResponse.json(
+      { error: 'DART_API_KEY 환경변수가 설정되지 않았습니다. Vercel 프로젝트 설정에서 등록하세요.' },
+      { status: 500 }
+    )
+  }
+  if (!corp_code || !/^\d{8}$/.test(corp_code)) {
+    return NextResponse.json({ error: 'corp_code는 8자리 숫자여야 합니다.' }, { status: 400 })
+  }
+  if (!/^\d{4}$/.test(bsns_year)) {
+    return NextResponse.json({ error: 'bsns_year는 4자리 연도여야 합니다.' }, { status: 400 })
   }
 
   try {
@@ -22,7 +31,10 @@ export async function GET(request) {
     url.searchParams.set('reprt_code', reprt_code)
     url.searchParams.set('fs_div', fs_div)
 
-    const res = await fetch(url.toString(), { cache: 'no-store' })
+    const res = await fetch(url.toString(), {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15000), // DART 응답 지연 대비 15초 타임아웃
+    })
     const data = await res.json()
 
     return NextResponse.json(data)

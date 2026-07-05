@@ -13,6 +13,7 @@ M2. Auto Tagger - 재무제표 → iXBRL 태그 자동 부착
     tagger.export_ixbrl(tagged, "output.html")
 """
 
+import html as _html
 import json
 from pathlib import Path
 from datetime import datetime
@@ -73,6 +74,11 @@ class AutoTagger:
         """
         if not self.mapper:
             raise ValueError("TaxonomyMapper가 연결되지 않았습니다. M1 모듈을 먼저 초기화하세요.")
+
+        # 회사(entity) 단위 실행마다 컨텍스트 초기화 —
+        # 하나의 tagger 인스턴스로 여러 회사를 순회할 때 이전 회사의
+        # 컨텍스트가 다음 회사 iXBRL에 섞여 출력되는 문제 방지
+        self.contexts = {}
 
         context = self._create_context(period_end, period_start, entity)
         tagged_items = []
@@ -161,7 +167,7 @@ class AutoTagger:
         else:
             tag = (f'<ix:nonNumeric name="{elem_id}" '
                    f'contextRef="{context_ref}">'
-                   f'{value}'
+                   f'{_html.escape(str(value))}'
                    f'</ix:nonNumeric>')
 
         return tag
@@ -171,19 +177,22 @@ class AutoTagger:
         """iXBRL HTML 파일 생성"""
         tagged_items = tagged_items or self.tagged_items
         output_path = output_path or OUTPUT_DIR / f"ixbrl_{datetime.now():%Y%m%d_%H%M%S}.html"
+        title = _html.escape(str(title))
 
         # iXBRL HTML 템플릿
         rows_html = []
         for item in tagged_items:
             indent = "&nbsp;" * (item['level'] * 4)
-            name = item['account_name']
+            # 계정과목명에 &, <, > 등이 포함돼도 HTML이 깨지지 않도록 이스케이프
+            name = _html.escape(str(item['account_name']))
             amount = item['amount']
 
             if item['ixbrl_tag']:
                 amount_html = item['ixbrl_tag']
                 status = "tagged"
             elif amount is not None:
-                amount_html = f'<span class="untagged">{amount:,.0f}</span>'
+                amount_str = f'{amount:,.0f}' if isinstance(amount, (int, float)) else _html.escape(str(amount))
+                amount_html = f'<span class="untagged">{amount_str}</span>'
                 status = "untagged"
             else:
                 amount_html = ""
@@ -212,7 +221,7 @@ class AutoTagger:
 
             ctx_xml_parts.append(
                 f'<xbrli:context id="{ctx_id}">'
-                f'<xbrli:entity><xbrli:identifier scheme="http://dart.fss.or.kr">{ctx["entity"]}</xbrli:identifier></xbrli:entity>'
+                f'<xbrli:entity><xbrli:identifier scheme="http://dart.fss.or.kr">{_html.escape(str(ctx["entity"]))}</xbrli:identifier></xbrli:entity>'
                 f'<xbrli:period>{period_xml}</xbrli:period>'
                 f'</xbrli:context>'
             )
@@ -222,6 +231,7 @@ class AutoTagger:
       xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
       xmlns:xbrli="http://www.xbrl.org/2003/instance"
       xmlns:ifrs-full="http://xbrl.ifrs.org/taxonomy/2024-01-01/ifrs-full"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
       xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2022-02-01">
 <head>
 <meta charset="UTF-8"/>

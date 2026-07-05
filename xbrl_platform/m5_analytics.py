@@ -121,7 +121,12 @@ class DARTAnalytics:
             return self._get_sample_data(company_name, year)
 
     def _fetch_from_dart(self, company_name: str, year: str) -> dict:
-        """DART API 실제 호출 (API 키 필요)"""
+        """DART API 호출 자리 (실호출은 미구현 — run_real_data.py 참고).
+
+        NOTE: M5 데모는 내장 샘플 데이터로 동작합니다. 실제 DART 연동은
+        run_real_data.py 의 fetch_financial_statements() 패턴으로 확장 가능합니다.
+        """
+        logger.warning("M5 실제 DART 호출은 미구현 상태 → 샘플 데이터로 대체합니다.")
         try:
             import requests
 
@@ -310,9 +315,15 @@ class DARTAnalytics:
                     cells.append(v.get('formatted', 'N/A'))
                     raw_values.append(v.get('value'))
 
-                # 최고값 하이라이트
+                # 최우량값 하이라이트 — 부채비율은 낮을수록 양호하므로 최소값을 강조
+                LOWER_IS_BETTER = {"부채비율"}
                 valid_vals = [(i, v) for i, v in enumerate(raw_values) if v is not None]
-                best_idx = max(valid_vals, key=lambda x: x[1])[0] if valid_vals else -1
+                if not valid_vals:
+                    best_idx = -1
+                elif rn in LOWER_IS_BETTER:
+                    best_idx = min(valid_vals, key=lambda x: x[1])[0]
+                else:
+                    best_idx = max(valid_vals, key=lambda x: x[1])[0]
 
                 cells_html = ''
                 for i, cell in enumerate(cells):

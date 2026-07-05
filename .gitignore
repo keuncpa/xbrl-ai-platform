@@ -29,3 +29,12 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# ── 개인/내부 문서 (공개 저장소에 커밋 금지) ──
+삼일PwC_*
+면접_*
+XBRL_AI_자동화_플랫폼_기획서.pdf
+
+# ── 스킬 패키징 산출물 ──
+*.skill
+xbrl_platform/skills/zi*

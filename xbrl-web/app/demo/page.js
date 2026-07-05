@@ -11,6 +11,16 @@ function formatOk(n) {
   return eok.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억'
 }
 
+// 업로드 탭 초기 예시 데이터 — 첫 사용자가 버튼만 눌러도 바로 실행되도록 실제 값으로 채워 둔다
+const SAMPLE_CSV = `계정과목,금액
+자산총계,51400000000000
+유동자산,21800000000000
+비유동자산,29600000000000
+부채총계,10200000000000
+유동부채,6500000000000
+비유동부채,3700000000000
+자본총계,41200000000000`
+
 function levelOf(name) {
   if (/총계$/.test(name) || name === '부채와자본총계') return 0
   if (['유동자산', '비유동자산', '유동부채', '비유동부채', '지배기업 소유주지분', '비지배지분'].some(k => name.includes(k))) return 1
@@ -194,7 +204,7 @@ export default function DemoPage() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
-  const [csvText, setCsvText] = useState('')
+  const [csvText, setCsvText] = useState(SAMPLE_CSV)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
 
@@ -423,16 +433,26 @@ export default function DemoPage() {
               </div>
 
               <div className="csv-fallback">
-                <label>또는 CSV 텍스트 직접 입력</label>
+                <label>또는 CSV 텍스트 직접 입력 <span style={{ opacity: 0.6, fontWeight: 400 }}>— 예시 데이터가 채워져 있어 바로 실행해 볼 수 있습니다</span></label>
                 <textarea
                   value={csvText}
                   onChange={e => setCsvText(e.target.value)}
-                  placeholder={`계정과목,금액\n자산총계,51400000000000\n유동자산,21800000000000\n비유동자산,29600000000000\n부채총계,10200000000000\n유동부채,6500000000000\n비유동부채,3700000000000\n자본총계,41200000000000`}
+                  placeholder={SAMPLE_CSV}
                   rows={8}
                 />
-                <button className="btn-primary" onClick={handleCsvSubmit} disabled={loading || !csvText.trim()}>
+                <button
+                  className="btn-primary"
+                  onClick={handleCsvSubmit}
+                  disabled={loading || !csvText.trim()}
+                  title={!csvText.trim() ? 'CSV 데이터를 입력하면 실행할 수 있습니다' : undefined}
+                >
                   {loading ? '처리 중...' : 'XBRL 생성·검증'}
                 </button>
+                {!csvText.trim() && !loading && (
+                  <p style={{ fontSize: 13, opacity: 0.65, marginTop: 8 }}>
+                    CSV 데이터를 입력하거나 위에서 파일을 업로드하면 버튼이 활성화됩니다.
+                  </p>
+                )}
               </div>
             </div>
           )}

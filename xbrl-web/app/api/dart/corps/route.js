@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 
 /**
- * Legacy endpoint — 기존 호환용.
- * 새 검색 기능은 /api/dart/search?q=기업명 을 사용합니다.
- * 이 엔드포인트는 주요 기업 샘플 목록만 반환합니다.
+ * Legacy endpoint — 기존 호환용. 주요 기업 샘플 목록만 반환합니다.
+ * 전체 상장사 검색은 클라이언트에서 /public/corps_listed.json 을 필터링합니다.
  */
 const SAMPLE_COMPANIES = [
   { corp_code: '00126380', name: '삼성전자', stock_code: '005930' },
@@ -17,6 +16,6 @@ const SAMPLE_COMPANIES = [
 export async function GET() {
   return NextResponse.json({
     companies: SAMPLE_COMPANIES,
-    note: '전체 상장사 검색은 /api/dart/search?q=기업명 을 사용하세요.',
+    note: '전체 상장사 목록은 /corps_listed.json 정적 파일을 사용하세요.',
   })
 }

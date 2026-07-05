@@ -56,17 +56,34 @@ def _clean_json(obj):
     return obj
 
 
+def _to_num(v):
+    """금액 입력을 숫자로 강제 변환. 변환 불가('1,000' 외 문자열 등)는 None."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return v if math.isfinite(v) else None
+    if isinstance(v, str):
+        try:
+            return float(v.replace(",", "").strip())
+        except ValueError:
+            return None
+    return None
+
+
 def _to_fs(items):
-    """프론트엔드 accounts → 엔진 입력 형태로 변환"""
+    """프론트엔드 accounts → 엔진 입력 형태로 변환 (금액·수준 타입 검증 포함)"""
     out = []
     for a in items or []:
-        name = (a.get("name") or "").strip()
+        if not isinstance(a, dict):
+            continue
+        name = str(a.get("name") or "").strip()
         if not name:
             continue
+        level = a.get("level", 0)
         out.append({
             "계정과목": name,
-            "금액": a.get("amount"),
-            "수준": a.get("level", 0),
+            "금액": _to_num(a.get("amount")),
+            "수준": level if isinstance(level, int) and 0 <= level <= 10 else 0,
         })
     return out
 
@@ -142,15 +159,26 @@ def run_pipeline(payload):
 
 
 class handler(BaseHTTPRequestHandler):
+    MAX_BODY = 2 * 1024 * 1024  # 2MB — 재무제표 JSON으로 충분, 남용 방지
+
     def do_POST(self):
         try:
             length = int(self.headers.get("content-length", 0) or 0)
+            if length > self.MAX_BODY:
+                self._send(413, {"ok": False, "error": "요청 본문이 너무 큽니다 (최대 2MB)."})
+                return
             body = self.rfile.read(length) if length else b"{}"
-            payload = json.loads(body or b"{}")
+            try:
+                payload = json.loads(body or b"{}")
+            except json.JSONDecodeError:
+                self._send(400, {"ok": False, "error": "유효한 JSON이 아닙니다."})
+                return
             result = run_pipeline(payload)
             self._send(200 if result.get("ok") else 400, result)
-        except Exception as e:  # noqa: BLE001
-            self._send(500, {"ok": False, "error": str(e)})
+        except Exception:  # noqa: BLE001 — 내부 오류 상세는 로그로만, 응답에는 일반 메시지
+            import traceback
+            traceback.print_exc()
+            self._send(500, {"ok": False, "error": "엔진 내부 오류가 발생했습니다. 입력 데이터를 확인해 주세요."})
 
     def do_GET(self):
         self._send(200, {

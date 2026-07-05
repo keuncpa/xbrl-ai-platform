@@ -8,8 +8,8 @@ const companies = [
     op_income: '32.7조',
     mapping: '100%',
     coverage: '100%',
-    changes: 43,
-    material: 4,
+    changes: 48,
+    material: 7,
   },
   {
     name: 'SK하이닉스',
@@ -18,7 +18,7 @@ const companies = [
     op_income: '23.5조',
     mapping: '100%',
     coverage: '100%',
-    changes: 49,
+    changes: 46,
     material: 9,
   },
   {
@@ -28,8 +28,8 @@ const companies = [
     op_income: '3.4조',
     mapping: '100%',
     coverage: '100%',
-    changes: 47,
-    material: 7,
+    changes: 43,
+    material: 4,
   },
   {
     name: '현대자동차',
@@ -38,8 +38,8 @@ const companies = [
     op_income: '14.2조',
     mapping: '100%',
     coverage: '100%',
-    changes: 45,
-    material: 5,
+    changes: 49,
+    material: 7,
   },
 ]
 
@@ -62,7 +62,7 @@ const modules = [
   {
     id: 'M4',
     name: 'Change Tracker',
-    desc: '전기/당기 비교, 중요섰(Materiality) 기준 변동 분석',
+    desc: '전기/당기 비교, 중요성(Materiality) 기준 변동 분석',
   },
   {
     id: 'M5',
@@ -86,8 +86,8 @@ const features = [
   {
     icon: '🏷️',
     color: 'cyan',
-    title: 'KOR-IFRS Taxonomy 87개 요소',
-    desc: '한국채택국제회계기준 Taxonomy 87개 표준 요소를 지원하며, 확장항목 자동 분류를 수행합니다.',
+    title: 'KOR-IFRS Taxonomy 101개 요소',
+    desc: '한국채택국제회계기준 Taxonomy 101개 표준 요소와 131개 별칭(동의어) 사전을 지원하며, 확장항목 자동 분류를 수행합니다.',
   },
   {
     icon: '✅',
@@ -156,7 +156,7 @@ export default function Home() {
               <div className="label">M3 Validation</div>
             </div>
             <div className="hero-stat">
-              <div className="num">87</div>
+              <div className="num">101</div>
               <div className="label">Taxonomy 요소</div>
             </div>
           </div>
@@ -292,23 +292,23 @@ export default function Home() {
             </div>
             <div className="card">
               <h3>CHECK 2 — Calculation Linkbase</h3>
-              <p>자산총계=유동자산+비유동자산, 부채총계=유동부채+비유동부채 등 부모-자식합산 관계를 검증합니다.</p>
+              <p>자산총계=유동자산+비유동자산, 부채총계=유동부채+비유동부채 등 부모-자식 합산 관계를 검증합니다.</p>
             </div>
             <div className="card">
               <h3>CHECK 3 — BS 균형 검증</h3>
-              <p>자산=부채+자본 듡식과 부채와자본총계=자산총계 교차검증을 수핉합니다. 1원 차이도 에러로 판정합니다.</p>
+              <p>자산=부채+자본 등식과 부채와자본총계=자산총계 교차검증을 수행합니다. 1원 차이도 ERROR로 판정합니다.</p>
             </div>
             <div className="card">
               <h3>CHECK 4 — 음수 값 검사</h3>
-              <p>자산, 현금성자산, 재고자산 등액수만 허용되는 항목의 음수 여분를 검사합니다.</p>
+              <p>자산, 현금성자산, 재고자산 등 양수만 허용되는 항목의 음수 여부를 검사합니다.</p>
             </div>
             <div className="card">
               <h3>CHECK 5 — 태깅 완성도</h3>
-              <p>금액이 있으면 iXBRL 태그가 없는 미태깅 햭목과, 표준 Taxonomy에 없는 확장항목을 식별합니다.</p>
+              <p>금액이 있으나 iXBRL 태그가 없는 미태깅 항목과, 표준 Taxonomy에 없는 확장항목을 식별합니다.</p>
             </div>
             <div className="card">
               <h3>CHECK 6 — 이상치 탐지</h3>
-              <p>전기 대비 100% 이상 변동을 WARNING으로 감지합니다. 실제 사업 변화로 인한 정당한 변동일 수 있으로로 검토 햭목�</p>
+              <p>전기 대비 100% 이상 변동을 WARNING으로 감지합니다. 실제 사업 변화로 인한 정당한 변동일 수 있으므로 검토 항목으로 분류합니다.</p>
             </div>
           </div>
         </div>
@@ -332,7 +332,7 @@ export default function Home() {
       {/* ===== FOOTER ===== */}
       <footer>
         <div className="container">
-          XBRL 공시 AI 자돕화 플랫폼 &middot; Portfolio Project
+          XBRL 공시 AI 자동화 플랫폼 &middot; Portfolio Project
           <br />
           <span style={{ marginTop: 8, display: 'inline-block' }}>
             Built by <a href="mailto:jkcpakim@gmail.com">JK Kim, CPA</a>
