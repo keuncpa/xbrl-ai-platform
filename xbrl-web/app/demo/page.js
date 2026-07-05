@@ -209,6 +209,9 @@ export default function DemoPage() {
   const fileRef = useRef(null)
 
   const [allCorps, setAllCorps] = useState([])
+  const [uploadHint, setUploadHint] = useState(false)
+  const searchSeqRef = useRef(0)
+  const searchDebounceRef = useRef(null)
 
   useEffect(() => {
     fetch('/corps_listed.json').then(r => r.json()).then(setAllCorps).catch(() => {})
@@ -225,14 +228,32 @@ export default function DemoPage() {
   const handleSearchChange = (value) => {
     setSearchQuery(value)
     setSelectedCorp(null)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     if (value.trim().length < 1) { setSearchResults([]); setShowDropdown(false); return }
     const q = value.trim().toLowerCase()
-    const matches = allCorps
+
+    // 1) 상장사 로컬 목록 즉시 필터링 (빠른 응답)
+    const local = allCorps
       .filter(c => c.n.toLowerCase().includes(q) || c.s.includes(q))
       .slice(0, 30)
       .map(c => ({ corp_code: c.c, name: c.n, stock_code: c.s }))
-    setSearchResults(matches)
-    setShowDropdown(matches.length > 0)
+    setSearchResults(local)
+    setShowDropdown(true)
+
+    // 2) 전체 DART 등록법인(비상장 포함) 서버 검색 — 300ms 디바운스, 결과 병합
+    const seq = ++searchSeqRef.current
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/corps?q=${encodeURIComponent(value.trim())}`)
+        const data = await res.json()
+        if (seq !== searchSeqRef.current || !data.ok) return  // 최신 입력의 응답만 반영
+        const seen = new Set(local.map(c => c.corp_code))
+        const extra = (data.results || [])
+          .filter(c => !seen.has(c.c))
+          .map(c => ({ corp_code: c.c, name: c.n, stock_code: c.s || '' }))
+        if (extra.length > 0) setSearchResults([...local, ...extra].slice(0, 30))
+      } catch { /* 서버 검색 실패 시 로컬(상장사) 결과만 유지 */ }
+    }, 300)
   }
 
   const handleSelectCorp = (corp) => {
@@ -268,20 +289,33 @@ export default function DemoPage() {
     setLoading(false)
   }, [])
 
-  // DART 조회 → 엔진
+  // DART 조회 → 엔진 (연결 CFS 우선, 없으면 별도 OFS 자동 폴백 — 비상장사 대응)
+  const fetchDartFs = async (fsDiv) => {
+    const res = await fetch(`/api/dart?corp_code=${selectedCorp.corp_code}&bsns_year=${year}&fs_div=${fsDiv}`)
+    const data = await res.json()
+    return parseDartData(data)
+  }
+
   const handleDartFetch = async () => {
     if (!selectedCorp?.corp_code) return
-    setLoading(true); setError(null); setResults(null)
+    setLoading(true); setError(null); setResults(null); setUploadHint(false)
     try {
-      const res = await fetch(`/api/dart?corp_code=${selectedCorp.corp_code}&bsns_year=${year}`)
-      const data = await res.json()
-      const { accounts, priorAccounts, error: parseErr } = parseDartData(data)
-      if (parseErr) { setError(parseErr); setLoading(false); return }
-      if (accounts.length === 0) {
-        setError('재무상태표 데이터가 없습니다. 해당 연도에 사업보고서가 없을 수 있습니다.')
+      let fsDiv = 'CFS'
+      let parsed = await fetchDartFs('CFS')
+      if (parsed.error || parsed.accounts.length === 0) {
+        parsed = await fetchDartFs('OFS')
+        fsDiv = 'OFS'
+      }
+      if (parsed.error || parsed.accounts.length === 0) {
+        setError(
+          `${selectedCorp.name}의 ${year}년 구조화 재무데이터(XBRL)를 DART에서 찾지 못했습니다. ` +
+          '사업보고서를 제출하지 않는 비상장사(감사보고서만 공시)는 API 조회가 지원되지 않습니다. ' +
+          '이 경우 감사보고서의 재무상태표를 엑셀·CSV·PDF로 업로드하면 동일한 매핑·태깅·검증을 수행할 수 있습니다.'
+        )
+        setUploadHint(true)
         setLoading(false); return
       }
-      await callEngine(accounts, priorAccounts, { entity: selectedCorp.name, year })
+      await callEngine(parsed.accounts, parsed.priorAccounts, { entity: selectedCorp.name, year, fsDiv })
     } catch (e) {
       setError('API 요청 실패: ' + e.message)
       setLoading(false)
@@ -364,7 +398,7 @@ export default function DemoPage() {
       <div className="demo-container">
         <div className="demo-header">
           <h1>XBRL 생성·검증 데모</h1>
-          <p>기업을 검색해 DART 재무데이터를 불러오거나 재무제표 파일(엑셀·CSV·PDF)을 업로드하면, 코어 엔진(M1~M4)이 <b>Taxonomy 매핑 → iXBRL 생성 → 품질검증 → 전기 대비 변경추적</b>까지 한 번에 처리합니다.</p>
+          <p>기업을 검색해 DART 재무데이터를 불러오거나(<b>비상장사 포함</b> · 연결 없으면 별도 자동 전환) 재무제표 파일(엑셀·CSV·PDF)을 업로드하면, 코어 엔진(M1~M4)이 <b>Taxonomy 매핑 → iXBRL 생성 → 품질검증 → 전기 대비 변경추적</b>까지 한 번에 처리합니다.</p>
         </div>
 
         {/* Tabs */}
@@ -385,18 +419,18 @@ export default function DemoPage() {
                       value={searchQuery}
                       onChange={e => handleSearchChange(e.target.value)}
                       onFocus={() => { if (searchResults.length > 0) setShowDropdown(true) }}
-                      placeholder="기업명을 입력하세요 (예: 삼성, 현대, LG...)"
+                      placeholder="기업명을 입력하세요 — 비상장사 포함 (예: 삼성, 현대, LG...)"
                       className="search-input"
                       autoComplete="off"
                     />
-                    {selectedCorp && <span className="selected-badge">{selectedCorp.stock_code}</span>}
+                    {selectedCorp && <span className="selected-badge">{selectedCorp.stock_code || '비상장'}</span>}
                   </div>
                   {showDropdown && searchResults.length > 0 && (
                     <div className="search-dropdown">
                       {searchResults.map(c => (
                         <button key={c.corp_code} className={`search-item ${selectedCorp?.corp_code === c.corp_code ? 'selected' : ''}`} onClick={() => handleSelectCorp(c)}>
                           <span className="si-name">{c.name}</span>
-                          <span className="si-code">{c.stock_code}</span>
+                          <span className="si-code">{c.stock_code || '비상장'}</span>
                         </button>
                       ))}
                     </div>
@@ -458,7 +492,22 @@ export default function DemoPage() {
           )}
         </div>
 
-        {error && <div className="error-box"><strong>오류:</strong> {error}</div>}
+        {error && (
+          <div className="error-box">
+            <strong>오류:</strong> {error}
+            {uploadHint && (
+              <div style={{ marginTop: 10 }}>
+                <button
+                  className="btn-primary"
+                  style={{ fontSize: 13, padding: '8px 14px' }}
+                  onClick={() => { setActiveTab('upload'); setError(null); setUploadHint(false) }}
+                >
+                  재무제표 업로드 탭으로 이동 →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {loading && (
           <div className="loading-box"><div className="spinner" /><span>엔진 처리 중...</span></div>
@@ -472,7 +521,7 @@ export default function DemoPage() {
               <div className="summary-header">
                 <div>
                   <h2>결과 {meta.entity && `— ${meta.entity}`} {meta.year && `(${meta.year})`}</h2>
-                  <p className="summary-sub">M1 매핑 · M2 iXBRL 생성 · M3 검증{chg ? ' · M4 변경추적' : ''} (코어 엔진 실행)</p>
+                  <p className="summary-sub">M1 매핑 · M2 iXBRL 생성 · M3 검증{chg ? ' · M4 변경추적' : ''} (코어 엔진 실행{meta.fsDiv === 'OFS' ? ' · 별도재무제표 기준' : ''})</p>
                 </div>
                 <span className={`status-badge ${v.status === 'PASS' ? 'pass' : 'fail'}`}>{v.status}</span>
               </div>
