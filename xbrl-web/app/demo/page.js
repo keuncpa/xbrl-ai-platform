@@ -212,6 +212,17 @@ export default function DemoPage() {
   const [uploadHint, setUploadHint] = useState(false)
   const searchSeqRef = useRef(0)
   const searchDebounceRef = useRef(null)
+  const fullCorpsPromiseRef = useRef(null)
+
+  // 전체 등록법인 목록(빌드 시 생성된 정적 파일) — 첫 검색 시 1회만 lazy 로드
+  const loadFullCorps = () => {
+    if (!fullCorpsPromiseRef.current) {
+      fullCorpsPromiseRef.current = fetch('/corps_all.json')
+        .then(r => (r.ok ? r.json() : []))
+        .catch(() => [])
+    }
+    return fullCorpsPromiseRef.current
+  }
 
   useEffect(() => {
     fetch('/corps_listed.json').then(r => r.json()).then(setAllCorps).catch(() => {})
@@ -240,19 +251,33 @@ export default function DemoPage() {
     setSearchResults(local)
     setShowDropdown(true)
 
-    // 2) 전체 DART 등록법인(비상장 포함) 서버 검색 — 300ms 디바운스, 결과 병합
+    // 2) 전체 DART 등록법인(비상장 포함) 검색 — 정적 목록 우선, 없으면 서버리스 폴백
     const seq = ++searchSeqRef.current
     searchDebounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/corps?q=${encodeURIComponent(value.trim())}`)
-        const data = await res.json()
-        if (seq !== searchSeqRef.current || !data.ok) return  // 최신 입력의 응답만 반영
+        let extra = []
+        const full = await loadFullCorps()  // [[corp_code, name, stock_code], ...]
+        if (full.length > 0) {
+          extra = full
+            .filter(e => e[1].toLowerCase().includes(q) || (e[2] && e[2].includes(q)))
+            .map(e => ({ corp_code: e[0], name: e[1], stock_code: e[2] || '' }))
+        } else {
+          const res = await fetch(`/api/corps?q=${encodeURIComponent(value.trim())}`)
+          const data = await res.json()
+          extra = data.ok
+            ? (data.results || []).map(c => ({ corp_code: c.c, name: c.n, stock_code: c.s || '' }))
+            : []
+        }
+        if (seq !== searchSeqRef.current) return  // 최신 입력의 응답만 반영
+        extra.sort((a, b) => (
+          (a.stock_code ? 0 : 1) - (b.stock_code ? 0 : 1) ||                                    // 상장사 우선
+          (a.name.toLowerCase().startsWith(q) ? 0 : 1) - (b.name.toLowerCase().startsWith(q) ? 0 : 1) ||  // 접두 일치 우선
+          a.name.length - b.name.length
+        ))
         const seen = new Set(local.map(c => c.corp_code))
-        const extra = (data.results || [])
-          .filter(c => !seen.has(c.c))
-          .map(c => ({ corp_code: c.c, name: c.n, stock_code: c.s || '' }))
-        if (extra.length > 0) setSearchResults([...local, ...extra].slice(0, 30))
-      } catch { /* 서버 검색 실패 시 로컬(상장사) 결과만 유지 */ }
+        const merged = [...local, ...extra.filter(c => !seen.has(c.corp_code))]
+        setSearchResults(merged.slice(0, 30))
+      } catch { /* 전체 검색 실패 시 로컬(상장사) 결과만 유지 */ }
     }, 300)
   }
 

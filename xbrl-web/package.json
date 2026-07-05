@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "python3 scripts/build_corps.py || true",
     "build": "next build",
     "start": "next start"
   },

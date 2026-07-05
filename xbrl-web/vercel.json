@@ -3,6 +3,9 @@
   "functions": {
     "api/process.py": {
       "includeFiles": "api/_engine/**"
+    },
+    "api/corps.py": {
+      "maxDuration": 60
     }
   }
 }

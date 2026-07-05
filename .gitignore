@@ -38,3 +38,6 @@ XBRL_AI_자동화_플랫폼_기획서.pdf
 # ── 스킬 패키징 산출물 ──
 *.skill
 xbrl_platform/skills/zi*
+
+# ── 빌드 시 생성되는 전체 법인 목록 (prebuild 산출물) ──
+xbrl-web/public/corps_all.json
