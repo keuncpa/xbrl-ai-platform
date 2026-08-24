@@ -424,6 +424,10 @@ export default function DemoPage() {
         <div className="demo-header">
           <h1>XBRL 생성·검증 데모</h1>
           <p>기업을 검색해 DART 재무데이터를 불러오거나(<b>비상장사 포함</b> · 연결 없으면 별도 자동 전환) 재무제표 파일(엑셀·CSV·PDF)을 업로드하면, 코어 엔진(M1~M4)이 <b>Taxonomy 매핑 → iXBRL 생성 → 품질검증 → 전기 대비 변경추적</b>까지 한 번에 처리합니다.</p>
+          <p className="results-note">
+            ※ 「PASS」는 태깅·검증 엔진이 오류 없이 처리를 완료했다는 뜻이며,
+            해당 기업 공시의 적정성에 대한 판정이 아닙니다.
+          </p>
         </div>
 
         {/* Tabs */}
@@ -683,6 +687,26 @@ export default function DemoPage() {
           </div>
         )}
       </div>
+
+      <footer>
+        <div className="container">
+          <div className="disclaimer">
+            <p>
+              본 페이지는 개인이 제작한 기술 검증용 데모입니다. 표시된 결과는 금융감독원
+              전자공시시스템(DART)에 공개된 자료를 대상으로 XBRL 태깅·검증 로직이 정상
+              동작하는지 확인한 것으로, 해당 기업의 재무제표나 공시에 대한 감사·검토 또는
+              그 밖의 인증 의견이 아닙니다. 특정 회계법인의 업무와 무관하며, 어떠한
+              의사결정의 근거로도 사용될 수 없습니다.
+            </p>
+          </div>
+          XBRL 공시 AI 자동화 플랫폼 &middot; Portfolio Project
+          <br />
+          <span style={{ marginTop: 8, display: 'inline-block' }}>
+            Built by <a href="mailto:keuncpa@gmail.com">JK Kim, CPA</a> &middot;{' '}
+            <a href="mailto:keuncpa@gmail.com">keuncpa@gmail.com</a>
+          </span>
+        </div>
+      </footer>
     </main>
   )
 }

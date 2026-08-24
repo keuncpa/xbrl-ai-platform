@@ -327,6 +327,27 @@ section { padding: 100px 0; }
 .code-block .num { color: var(--amber); }
 
 /* ===== Footer ===== */
+/* ===== Disclaimer / Notes ===== */
+.disclaimer {
+  max-width: 860px;
+  margin: 0 auto 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-accent);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: left;
+}
+.disclaimer p { margin: 0; }
+.results-note {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+
 footer {
   padding: 48px 0;
   border-top: 1px solid var(--border);

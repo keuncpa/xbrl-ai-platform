@@ -2,40 +2,28 @@ import './globals.css'
 
 const companies = [
   {
-    name: '삼성전자',
-    assets: '514.5조',
-    revenue: '300.9조',
-    op_income: '32.7조',
+    name: 'A사 (전자·반도체)',
     mapping: '100%',
     coverage: '100%',
     changes: 48,
     material: 7,
   },
   {
-    name: 'SK하이닉스',
-    assets: '119.9조',
-    revenue: '66.2조',
-    op_income: '23.5조',
+    name: 'B사 (반도체)',
     mapping: '100%',
     coverage: '100%',
     changes: 46,
     material: 9,
   },
   {
-    name: 'LG전자',
-    assets: '65.6조',
-    revenue: '87.7조',
-    op_income: '3.4조',
+    name: 'C사 (전자·가전)',
     mapping: '100%',
     coverage: '100%',
     changes: 43,
     material: 4,
   },
   {
-    name: '현대자동차',
-    assets: '339.8조',
-    revenue: '175.2조',
-    op_income: '14.2조',
+    name: 'D사 (자동차)',
     mapping: '100%',
     coverage: '100%',
     changes: 49,
@@ -237,24 +225,16 @@ export default function Home() {
             DART API에서 조회한 2024년 사업보고서 기준 실제 연결재무제표 데이터로
             파이프라인 전체를 실행한 결과입니다.
           </p>
+          <p className="results-note">
+            ※ 「PASS」는 태깅·검증 엔진이 오류 없이 처리를 완료했다는 뜻이며,
+            해당 기업 공시의 적정성에 대한 판정이 아닙니다. 기업명은 익명 처리했습니다.
+          </p>
           <div className="company-grid">
             {companies.map((c) => (
               <div key={c.name} className="company-card">
                 <div className="company-header">
                   <span className="company-name">{c.name}</span>
                   <span className="pass-badge">PASS</span>
-                </div>
-                <div className="metric-row">
-                  <span className="metric-label">자산총계</span>
-                  <span className="metric-value">{c.assets}</span>
-                </div>
-                <div className="metric-row">
-                  <span className="metric-label">매출액</span>
-                  <span className="metric-value">{c.revenue}</span>
-                </div>
-                <div className="metric-row">
-                  <span className="metric-label">영업이익</span>
-                  <span className="metric-value">{c.op_income}</span>
                 </div>
                 <div className="metric-row">
                   <span className="metric-label">M1 매핑률</span>
@@ -332,10 +312,20 @@ export default function Home() {
       {/* ===== FOOTER ===== */}
       <footer>
         <div className="container">
+          <div className="disclaimer">
+            <p>
+              본 페이지는 개인이 제작한 기술 검증용 데모입니다. 표시된 결과는 금융감독원
+              전자공시시스템(DART)에 공개된 자료를 대상으로 XBRL 태깅·검증 로직이 정상
+              동작하는지 확인한 것으로, 해당 기업의 재무제표나 공시에 대한 감사·검토 또는
+              그 밖의 인증 의견이 아닙니다. 특정 회계법인의 업무와 무관하며, 어떠한
+              의사결정의 근거로도 사용될 수 없습니다.
+            </p>
+          </div>
           XBRL 공시 AI 자동화 플랫폼 &middot; Portfolio Project
           <br />
           <span style={{ marginTop: 8, display: 'inline-block' }}>
-            Built by <a href="mailto:jkcpakim@gmail.com">JK Kim, CPA</a>
+            Built by <a href="mailto:keuncpa@gmail.com">JK Kim, CPA</a> &middot;{' '}
+            <a href="mailto:keuncpa@gmail.com">keuncpa@gmail.com</a>
           </span>
         </div>
       </footer>
